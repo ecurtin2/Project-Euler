@@ -1,8 +1,6 @@
 import argparse
-import functools
 import itertools
 
-@functools.lru_cache()
 def factorize(n):
     if n < 0:
         yield -1
@@ -16,8 +14,6 @@ def factorize(n):
         yield from factorize(n // i)        
     else:
         yield n
-    
-        
  
 
 def main():
