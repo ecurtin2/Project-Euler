@@ -121,7 +121,6 @@ class SudokuPuzzle(object):
             super().__init__(sudoku_puzzle, col, identity='Col')
             self.idx = idx
 
-
     def __init__(self, grid, identity='Unnamed'):
         self.identity = identity
         self.squares = [[__class__.Square(i, j, grid[i][j]) for i in range(9)] for j in range(9)]
@@ -134,6 +133,9 @@ class SudokuPuzzle(object):
         self.iterations = 0
         self.save_states = {}
         self.invalid_containers = []
+        self.combo_its = 0
+        self.obvious_its = 0
+        self.guess_its = 0
 
     @property
     def is_solved(self):
@@ -150,19 +152,25 @@ class SudokuPuzzle(object):
             else:
                 return True
 
-    def solve_combo(self, recursion_depth):
-        if recursion_depth > 0:
+    def solve_combo(self, maxits=10):
+
+        count = 0
+        while not puzzle.is_solved:
+            self.combo_its += 1
+            count += 1
+            if count >= maxits:
+                return None
             self.save('first')
             self.solve_obvious()
             if not puzzle.is_solved:
-                puzzle.attempt_solve_by_guess(50)
+                puzzle.attempt_solve_by_guess(10)
             if not puzzle.is_solved:
                 puzzle.load('first')
-                self.solve_combo(recursion_depth - 1)
 
-    def solve_obvious(self, max_iters=100):
+    def solve_obvious(self, max_iters=10):
         count = 0
         while not self.is_solved:
+            self.obvious_its += 1
             old_vals = copy.copy([square.value for square in self.allsquares])
             count += 1
             for square in self.allsquares:
@@ -187,6 +195,7 @@ class SudokuPuzzle(object):
         count = 0
         self.save('hard')
         while not puzzle.is_solved:
+            self.guess_its += 1
             self.save('soft')
             count += 1
             try:
@@ -214,22 +223,24 @@ class SudokuPuzzle(object):
 
     def __str__(self):
         d = {True: "Solved", False: "Unsolved"}
-        top = [3 * ' ' + " Sudoku: {name}   Status: {solved}   # Iterations: {its}".format(
+        top = [3 * ' ' + " Sudoku: {name}   Status: {solved}   ".format(
             name=self.identity, solved=d[self.is_solved], its=self.iterations)]
-        second = [' '*9 + 'Original' + ' '*21 + 'Current']
+        second = ['# Iterations:   Combo = {c}, Guess = {g}, Obvious = {o}'.format(
+            c=self.combo_its, g=self.guess_its, o=self.obvious_its)]
+        third = [' '*9 + 'Original' + ' '*21 + 'Current']
         l = [s1 + ' |    | ' + s2 for s1, s2 in zip(self.original_str, self.get_list_str())]
         l = ['| ' + s + ' |' for s in l]
         l = [s.replace('| -', '|-').replace('- |', '-|') if '-' in s else s for s in l]
         hline = '-' * 25 + '    ' + '-'*25
         l.append(hline)
-        l = top + second + [hline]+ l
+        l = top + second + third + [hline]+ l
         return '\n' + '\n'.join(l)
 
 
 puzzles = [SudokuPuzzle(v, k) for k, v in grids.items()]
 max = 100
 for puzzle in puzzles:
-    puzzle.solve_combo(recursion_depth=5)
+    puzzle.solve_combo()
     print(puzzle)
 
 
