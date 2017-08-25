@@ -242,6 +242,7 @@ class SudokuPuzzle(object):
 
 puzzles = [SudokuPuzzle(v, k) for k, v in grids.items()]
 max = 100
+<<<<<<< HEAD
 total = 0
 
 for puzzle in puzzles:
@@ -252,6 +253,8 @@ for puzzle in puzzles:
     print(puzzle)
 
 print("total = {}".format(total))
+
+print(total)
 
 frac = sum(1 for puzzle in puzzles if puzzle.is_solved) / len(puzzles)
 
