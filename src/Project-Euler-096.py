@@ -15,9 +15,9 @@ for line in puzzles:
     else:
         grids[key].append(line.replace('\n', ''))
 
+
 grids = {k: [[int(i) for i in s] for s in v] for k, v in grids.items()}
 
-grid = grids['01']
 
 
 class SubContainer(object):
@@ -46,7 +46,7 @@ class SubContainer(object):
     def requires(self):
         return set(i for i in range(1, 10) if i not in self.contains)
 
-    def solve_obvious(self):
+    def solve_deterministic(self):
         if not self.is_solved:
             if len(self.requires) == 1:
                 val = self.requires.pop()
@@ -68,6 +68,7 @@ class SudokuPuzzle(object):
             self.global_col_idx = global_col_idx
             self.value = value
             self.subcontainers = {}
+            self.guess_cache = set()
 
         def add_subcontainer(self, instance, identity):
             self.subcontainers[identity] = instance
@@ -91,13 +92,19 @@ class SudokuPuzzle(object):
 
             return ''.join(l)
 
-        def guess(self):
+        def guess(self, val=None):
             if not self.is_solved:
                 if len(self.candidates) == 0:
                     raise AttributeError("Puzzle is In unsolvable state!")
-                self.value = random.choice(list(self.candidates))
 
-        def solve_obvious(self):
+                if val is None:
+                    try:
+                        val = random.choice(list(self.candidates))
+                    except IndexError:
+                        raise AttributeError("Puzzle is In unsolvable state!")
+                self.value = val
+
+        def solve_deterministic(self):
             if not self.is_solved:
                 if len(self.candidates) == 1:
                     self.value = self.candidates.pop()
@@ -123,12 +130,12 @@ class SudokuPuzzle(object):
 
     def __init__(self, grid, identity='Unnamed'):
         self.identity = identity
-        self.squares = [[__class__.Square(i, j, grid[i][j]) for i in range(9)] for j in range(9)]
+        self.squares = [[__class__.Square(i, j, grid[j][i]) for i in range(9)] for j in range(9)]
         self.allsquares = [square for row in self.squares for square in row]
         self.rows = [__class__.Row(self, i) for i in range(9)]
         self.cols = [__class__.Col(self, i) for i in range(9)]
         self.boxes = [__class__.Box(self, i, j) for i in range(3) for j in range(3)]
-        self.containers = self.rows + self.cols + self.boxes
+        self.containers = tuple(self.rows + self.cols + self.boxes)
         self.original_str = self.get_list_str()
         self.iterations = 0
         self.save_states = {}
@@ -136,6 +143,7 @@ class SudokuPuzzle(object):
         self.combo_its = 0
         self.obvious_its = 0
         self.guess_its = 0
+        self.guessed_squares = set()
 
     @property
     def is_solved(self):
@@ -145,38 +153,53 @@ class SudokuPuzzle(object):
     def is_valid(self):
         self.invalid_containers = []
         for cont in self.containers:
-            counter = collections.Counter(cont.contains)
-            if any(val > 1 for val in counter.values()):
+            counter = collections.Counter([v for v in cont.contains if v != 0])
+            if any(val != 1 for val in counter.values()):
                 self.invalid_containers.append(cont)
                 return False
-            else:
-                return True
+        return True
 
     def solve_combo(self, maxits=10):
-
-        count = 0
-        while not puzzle.is_solved:
+        iters = 0
+        self.save('hard')
+        while not self.is_solved:
+            #try:
             self.combo_its += 1
-            count += 1
-            if count >= maxits:
+            iters += 1
+            if iters >= maxits:
                 return None
-            self.save('first')
-            self.solve_obvious()
-            if not puzzle.is_solved:
-                puzzle.attempt_solve_by_guess(10)
-            if not puzzle.is_solved:
-                puzzle.load('first')
+            self.solve_deterministic()
+            self.save('soft')
+            idx = 0
+            square_cache = set()
+            while not self.is_solved:
+                try:
+                    squares = [s for s in self.allsquares if not s.is_solved and s not in square_cache]
+                    square = squares[idx]
+                    square_cache.add(square)
+                    for v in square.candidates:
+                        square.guess(v)
+                        self.solve_deterministic()
+                        if self.is_solved:
+                            break
 
-    def solve_obvious(self, max_iters=10):
+                except AttributeError:
+                    self.load('soft')
+                except ValueError:
+                    self.load('soft')
+                except IndexError:
+                    self.load('soft')
+
+    def solve_deterministic(self, max_iters=10):
         count = 0
         while not self.is_solved:
             self.obvious_its += 1
             old_vals = copy.copy([square.value for square in self.allsquares])
             count += 1
             for square in self.allsquares:
-                square.solve_obvious()
+                square.solve_deterministic()
             for cont in self.containers:
-                cont.solve_obvious()
+                cont.solve_deterministic()
             if count == max_iters:
                 break
             if old_vals == [square.value for square in self.allsquares]:
@@ -189,26 +212,6 @@ class SudokuPuzzle(object):
     def load(self, key):
         for square in self.allsquares:
             square.value = self.save_states[key][square]
-
-    def attempt_solve_by_guess(self, maxits=10):
-
-        count = 0
-        self.save('hard')
-        while not puzzle.is_solved:
-            self.guess_its += 1
-            self.save('soft')
-            count += 1
-            try:
-                choices = [square for square in self.allsquares if not square.is_solved]
-                square = random.choice(choices)
-                square.guess()
-                self.solve_obvious(max_iters=10)
-            except AttributeError: # Raises attributerror if unsolvable, reset to savepoint.
-                self.load('soft')
-            except IndexError:
-                self.load('soft')
-            if count == maxits:
-                break
 
     def get_list_str(self):
         l = []
@@ -239,18 +242,20 @@ class SudokuPuzzle(object):
 
 puzzles = [SudokuPuzzle(v, k) for k, v in grids.items()]
 max = 100
-
+<<<<<<< HEAD
 total = 0
+
 for puzzle in puzzles:
-    puzzle.solve_combo()
-    num = ''.join([str(square.value) for square in puzzle.squares[0][:3]])
-    total += int(num)
-    print(int(num))
+    puzzle.solve_combo(maxits=25)
+    num = int(''.join([str(puzzle.squares[0][j].value) for j in range(3)]))
+    print(num)
+    total += num
     print(puzzle)
 
+print("total = {}".format(total))
 
 print(total)
 
 frac = sum(1 for puzzle in puzzles if puzzle.is_solved) / len(puzzles)
 
-print("Solved {}% of Puzzles!".format(100.0*frac))
+print("Solved {:5.4}% of Puzzles!".format(100.0*frac))
