@@ -1,10 +1,15 @@
 import itertools
+import time
 
 
-def eratosthenes( ):
+def eratosthenes(max_val=None):
     '''Yields the sequence of prime numbers via the Sieve of Eratosthenes.'''
-    D = {  }  # map each composite integer to its first-found prime factor
-    for q in itertools.count(2):     # q gets 2, 3, 4, 5, ... ad infinitum
+    D = {}  # map each composite integer to its first-found prime factor
+    if max_val is None:
+        iterable = itertools.count(2)
+    else:
+        iterable = range(2, max_val + 1)
+    for q in iterable:     # q gets 2, 3, 4, 5, ... ad infinitum
         p = D.pop(q, None)
         if p is None:
             # q not a key in D, so q is prime, therefore, yield it
@@ -19,3 +24,17 @@ def eratosthenes( ):
             while x in D:
                 x += p
             D[x] = p
+
+
+def main():
+    t = time.time()
+    l = list(eratosthenes(max_val=100))
+    print(l)
+    print(time.time() -  t)
+    t = time.time()
+    s = set(l)
+    print(time.time() - t)
+
+
+if __name__ == '__main__':
+    main()
