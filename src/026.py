@@ -1,45 +1,36 @@
-import decimal
-import itertools
-
-decimal.getcontext().prec = 500
+N = 10
 
 
-def chunks(l, size):
-    n = len(l) // size
-    return [l[(i * size):(i+1) *size] for i in range(n)]
+def repeating_divide(num, den):
+    assert(den != 0)
+    result = []
+    repeated = []
+    repeat = None
+    for i in range(1, 1000):
+        d = num // den
+        r = num % den
+        if r == 0:
+            result.append(d)
+            break
+        else:
+            result.append(d)
+            num = 10 * (num - den * d)
+            if num in repeated:
+                repeat = result[(repeated.index(num) + 1):]
+                break
+            else:
+                repeated.append(num)
+    if len(result) > 1:
+        result = ''.join(
+            [str(result[0]), '.'] + [str(i) for i in result[1:]])
+    else:
+        result = str(result[0])
+    if repeat is not None:
+        repeat = ''.join(str(i) for i in repeat)
+    return result, repeat
 
+repeats = ((i, repeating_divide(1, i)[1]) for i in range(1, 1000)
+           if repeating_divide(1, i)[1] is not None)
 
-def find_recurring_subset(iterable):
-    if len(set(iterable)) == 1:
-        return iterable[0]
-
-    for i in range(2, len(iterable)//2):
-        c = chunks(iterable, i)
-        if len(c) < 3:
-            return None
-        if len(set(c)) == 1:
-            return c[0]
-
-
-def recurring_cycle(n):
-    s = str(n)
-    if len(s) < decimal.getcontext().prec + 2:
-        return None
-    s = s.replace('0.', '')[:-1]
-    # Trim leading elements up to 3/4 lenth of string
-    for i in range(1, int(round(0.75*len(s)))):
-        recurring = find_recurring_subset(s[i:])
-        if recurring is not None:
-            return recurring
-    return None
-
-N = 1000
-
-
-def recurring_in_reciprocal(n):
-    return recurring_cycle(decimal.Decimal(1) / decimal.Decimal(n))
-
-r = ((val, recurring_in_reciprocal(val)) for val in range(1, N))
-r = ((val, rec, len(rec)) for val, rec in r if rec is not None)
-
-print(max(r, key=lambda x: x[2]))
+maxval = max(repeats, key=lambda x: len(x[1]))
+print(maxval[0], len(maxval[1]))
