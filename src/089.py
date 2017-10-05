@@ -1,8 +1,4 @@
-from collections import OrderedDict
 import re
-
-with open('089.dat') as f:
-    numerals = [line.strip() for line in f.readlines()]
 
 
 def replace_str_by_dict(dic, mystring):
@@ -12,6 +8,22 @@ def replace_str_by_dict(dic, mystring):
     mystring = pattern.sub(lambda m: dic[re.escape(m.group(0))], mystring)
     return mystring
 
+replacements = {'VIIII': 'IX', 'IIII': 'IV', 'LXXXX': 'XC', 'XXXX': 'XL', 'DCCCC': 'CM', 'CCCC': 'CD'}
+with open('089.dat') as f:
+    s = f.read()
+    s2 = replace_str_by_dict(replacements, s)
+    print(len(s) - len(s2))
+
+
+
+'''
+Less trolly version
+
+from collections import OrderedDict
+import re
+
+with open('089.dat') as f:
+    numerals = [line.strip() for line in f.readlines()]
 
 NUMERALS = {
     'I': '1:',
@@ -62,3 +74,4 @@ for n in numerals:
     short = int_to_shortest_numeral(val)
     total_saved += len(n) - len(short)
 print(total_saved)
+'''
