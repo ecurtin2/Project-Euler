@@ -82,12 +82,12 @@ def inner_join(iter1, iter2):
     return (thing for k, v in d.items() for thing in [k]*v)
 
 
-def cyclic_permutations(iterable):
+def cyclic_permutations(iterable, period=1):
     """Generate tuples of cyclic permutations of iterable"""
     deque = collections.deque(iterable)
     for _ in range(len(deque)):
         yield tuple(deque)
-        deque.rotate(-1)
+        deque.rotate(-1 * period)
 
 
 def main():
