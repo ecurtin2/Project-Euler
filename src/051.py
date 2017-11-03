@@ -1,27 +1,27 @@
+import sys
+sys.path.append('../customlib')
+
 import itertools as it
 
-# primes won't happen for sum(digits) = multiple of 3
-# find a number where sum(digits) + n * (range(0, 10) has fewest multiples of 3
-
+from number import Number
 import sympy
 
-ndigits = 5
+primes = set(sympy.ntheory.primerange(10**5, 10**6 - 1))
 
-cases = []
-for n_replace in range(1, ndigits):
-    n_left = ndigits - n_replace
-    for mysum in range(n_left, 9 * n_left):
-        count = 0
-        for i in range(10):
-            newsum = mysum + n_replace * i
-            if newsum % 3 != 0:
-                count += 1
-        if count >= 8:
-            cases.append((n_replace, mysum))
+vals = {}
+for p in primes:
+    n = Number(p)
+    max_count = 0
+    for mask in it.combinations(range(0, len(str(p)) - 1), 3):
+        family = []
+        for v in range(10):
+            val = n.replace_indices(mask, v).val
+            if val in primes:
+                family.append(val)
+        if len(family) > max_count:
+            vals[p] = (mask, family)
+            max_count = len(family)
 
-for nr, mys in cases:
-    for d1 in range(1, mys):
-        d2 = mys - d1
-        if (d1 < 10) and (d2 < 10):
-            print(d1, d2)
-print(cases)
+k = max(vals, key=lambda k: len(vals[k][1]))
+print(k, vals[k])
+print(min(vals[k][1]))

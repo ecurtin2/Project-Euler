@@ -12,12 +12,9 @@ test = np.asarray([ [131, 673, 234, 103,  18]
                 ], dtype=int)
 
 M = np.loadtxt('083.dat', dtype=int, delimiter=',')
-g = arraygraph.ArrayGraph(test, up=True)
 
-vals = []
-nrows = test.shape[0]
-for istart in range(nrows):
-    for iend in range(nrows):
-        vals.append(g.minimum_path_val(start=(istart, 0), destination=(iend, nrows - 1)))
+zeros = np.zeros_like(M)
+ary = np.hstack((zeros, M, zeros))
 
-print(min(vals))
+g = arraygraph.ArrayGraph(ary, up=True)
+print(g.minimum_path_val())

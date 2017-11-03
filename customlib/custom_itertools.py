@@ -90,6 +90,26 @@ def cyclic_permutations(iterable, period=1):
         deque.rotate(-1 * period)
 
 
+def grouped(iterable, n):
+    """s -> (s0,s1,s2,...sn-1), (sn,sn+1,sn+2,...s2n-1), (s2n,s2n+1,s2n+2,...s3n-1), ...
+
+    Johnsyweb from stackoverflow
+    https://stackoverflow.com/questions/5389507/iterating-over-every-two-elements-in-a-list
+    """
+    return zip(*[iter(iterable)]*n)
+
+
+def astype(iterable, _type):
+    try:
+        types = list(_type)
+        for i in iterable:
+            yield tuple(_type_j(j) for j, _type_j in zip(i, types))
+
+    except TypeError:
+        for i in iterable:
+            yield _type(i)
+
+
 def main():
     l1 = list(range(10))
     l2 = list(range(8, 15))
