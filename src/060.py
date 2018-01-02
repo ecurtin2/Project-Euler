@@ -55,5 +55,5 @@ for v1, d in tripsdict.items():
             if len(union) == 2:
                 if concats_prime(union):
                     sums.append(v1 + v2 + v3 + sum(union))
-                    
+
 print(min(sums))

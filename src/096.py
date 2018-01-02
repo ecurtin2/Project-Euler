@@ -1,8 +1,7 @@
 import copy
-import random
 import collections
 
-with open('96.dat') as f:
+with open('096.dat') as f:
     puzzles = f.readlines()
 
 grids = {}
@@ -17,7 +16,6 @@ for line in puzzles:
 
 
 grids = {k: [[int(i) for i in s] for s in v] for k, v in grids.items()}
-
 
 
 class SubContainer(object):
@@ -46,7 +44,7 @@ class SubContainer(object):
     def requires(self):
         return set(i for i in range(1, 10) if i not in self.contains)
 
-    def solve_deterministic(self):
+    def solve(self):
         if not self.is_solved:
             if len(self.requires) == 1:
                 val = self.requires.pop()
@@ -89,22 +87,9 @@ class SudokuPuzzle(object):
             l = ['Square at location {i}, {j} with value {v}'.format(i=self.global_row_idx,
                                                                      j=self.global_col_idx,
                                                                      v=self.value)]
-
             return ''.join(l)
 
-        def guess(self, val=None):
-            if not self.is_solved:
-                if len(self.candidates) == 0:
-                    raise AttributeError("Puzzle is In unsolvable state!")
-
-                if val is None:
-                    try:
-                        val = random.choice(list(self.candidates))
-                    except IndexError:
-                        raise AttributeError("Puzzle is In unsolvable state!")
-                self.value = val
-
-        def solve_deterministic(self):
+        def solve(self):
             if not self.is_solved:
                 if len(self.candidates) == 1:
                     self.value = self.candidates.pop()
@@ -131,7 +116,6 @@ class SudokuPuzzle(object):
     def __init__(self, grid, identity='Unnamed'):
         self.identity = identity
         self.squares = [[__class__.Square(i, j, grid[j][i]) for i in range(9)] for j in range(9)]
-        self.allsquares = [square for row in self.squares for square in row]
         self.rows = [__class__.Row(self, i) for i in range(9)]
         self.cols = [__class__.Col(self, i) for i in range(9)]
         self.boxes = [__class__.Box(self, i, j) for i in range(3) for j in range(3)]
@@ -144,10 +128,14 @@ class SudokuPuzzle(object):
         self.obvious_its = 0
         self.guess_its = 0
         self.guessed_squares = set()
+        assert(self.is_valid and 'Initial puzzle is already invalid and cannot be solved.')
+
+    def allsquares(self):
+        return [square for row in self.squares for square in row]
 
     @property
     def is_solved(self):
-        return all(square.is_solved for square in self.allsquares) and self.is_valid
+        return all(square.is_solved for square in self.allsquares()) and self.is_valid
 
     @property
     def is_valid(self):
@@ -159,59 +147,39 @@ class SudokuPuzzle(object):
                 return False
         return True
 
-    def solve_combo(self, maxits=10):
-        iters = 0
-        self.save('hard')
-        while not self.is_solved:
-            #try:
-            self.combo_its += 1
-            iters += 1
-            if iters >= maxits:
-                return None
-            self.solve_deterministic()
-            self.save('soft')
-            idx = 0
-            square_cache = set()
-            while not self.is_solved:
-                try:
-                    squares = [s for s in self.allsquares if not s.is_solved and s not in square_cache]
-                    square = squares[idx]
-                    square_cache.add(square)
-                    for v in square.candidates:
-                        square.guess(v)
-                        self.solve_deterministic()
-                        if self.is_solved:
-                            break
-
-                except AttributeError:
-                    self.load('soft')
-                except ValueError:
-                    self.load('soft')
-                except IndexError:
-                    self.load('soft')
-
-    def solve_deterministic(self, max_iters=10):
+    def solve(self, max_iters=100):
         count = 0
         while not self.is_solved:
             self.obvious_its += 1
-            old_vals = copy.copy([square.value for square in self.allsquares])
+            old_vals = copy.copy([square.value for square in self.allsquares()])
             count += 1
-            for square in self.allsquares:
-                square.solve_deterministic()
+            for square in self.allsquares():
+                square.solve()
             for cont in self.containers:
-                cont.solve_deterministic()
+                cont.solve()
             if count == max_iters:
                 break
-            if old_vals == [square.value for square in self.allsquares]:
+            if old_vals == [square.value for square in self.allsquares()]:
+                # if unchanged, let's start splitting.
+                # This calls solve_deterministic recursively on the duplicates so may potentially suck a lot.
+                # Probably much more efficient to just keep track of guesses or something but fk it this was easy
+                try:
+                    split_on = min((s for s in self.allsquares() if s.candidates), key=lambda s: len(s.candidates))
+                except:
+                    break
+
+                row = split_on.global_row_idx
+                col = split_on.global_col_idx
+                for candidate in split_on.candidates:
+                    duplicate = copy.deepcopy(self)
+                    duplicate.squares[col][row].value = candidate
+                    duplicate.solve(max_iters)
+
+                    if duplicate.is_solved:
+                        self.squares = duplicate.squares
+                        break
                 break
         self.iterations = count
-
-    def save(self, key):
-        self.save_states[key] = {square: square.value for square in self.allsquares}
-
-    def load(self, key):
-        for square in self.allsquares:
-            square.value = self.save_states[key][square]
 
     def get_list_str(self):
         l = []
@@ -228,34 +196,45 @@ class SudokuPuzzle(object):
         d = {True: "Solved", False: "Unsolved"}
         top = [3 * ' ' + " Sudoku: {name}   Status: {solved}   ".format(
             name=self.identity, solved=d[self.is_solved], its=self.iterations)]
-        second = ['# Iterations:   Combo = {c}, Guess = {g}, Obvious = {o}'.format(
-            c=self.combo_its, g=self.guess_its, o=self.obvious_its)]
         third = [' '*9 + 'Original' + ' '*21 + 'Current']
         l = [s1 + ' |    | ' + s2 for s1, s2 in zip(self.original_str, self.get_list_str())]
         l = ['| ' + s + ' |' for s in l]
         l = [s.replace('| -', '|-').replace('- |', '-|') if '-' in s else s for s in l]
         hline = '-' * 25 + '    ' + '-'*25
         l.append(hline)
-        l = top + second + third + [hline]+ l
+        l = top + third + [hline]+ l
         return '\n' + '\n'.join(l)
 
 
 puzzles = [SudokuPuzzle(v, k) for k, v in grids.items()]
-max = 100
-<<<<<<< HEAD
 total = 0
 
-for puzzle in puzzles:
-    puzzle.solve_combo(maxits=25)
-    num = int(''.join([str(puzzle.squares[0][j].value) for j in range(3)]))
-    print(num)
-    total += num
-    print(puzzle)
+#for puzzle in puzzles:
+#    puzzle.solve()
+#    num = int(''.join([str(puzzle.squares[0][j].value) for j in range(3)]))
+#    total += num
+#    print(puzzle)
+#print("\nSum of numbers formed by top left 3 digits = {}".format(total))
+#frac = sum(1 for puzzle in puzzles if puzzle.is_solved) / len(puzzles)
+#print("Solved {:5.4}% of Puzzles!".format(100.0*frac))
 
-print("total = {}".format(total))
+print('Bonus one from airplane magazine!')
 
-print(total)
 
-frac = sum(1 for puzzle in puzzles if puzzle.is_solved) / len(puzzles)
+puzzle = SudokuPuzzle(
+          [[0, 0, 0, 0, 7, 5, 3, 9, 0]
+          ,[0, 0, 3, 0, 9, 0, 6, 7, 2]
+          ,[0, 6, 0, 8, 2, 0, 5, 0, 0]
+          ,[0, 4, 7, 0, 0, 8, 0, 0, 1]
+          ,[0, 0, 0, 0, 0, 0, 0, 0, 0]
+          ,[2, 0, 0, 3, 0, 0, 4, 5, 0]
+          ,[0, 0, 2, 0, 5, 4, 0, 8, 0]
+          ,[5, 1, 4, 0, 8, 0, 2, 0, 0]
+          ,[0, 7, 8, 9, 3, 0, 0, 0, 0]]
+        , "Airplane")
 
-print("Solved {:5.4}% of Puzzles!".format(100.0*frac))
+import time
+t = time.time()
+puzzle.solve()
+print(puzzle)
+print('Solved in {} seconds'.format(time.time() - t))
