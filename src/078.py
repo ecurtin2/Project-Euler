@@ -1,15 +1,30 @@
-from math import exp, pi, sqrt, exp
+import itertools as it
 
 
-def n_partitions(n):
-    return 1 / (4 * n * sqrt(3)) * exp(pi * sqrt(2*n / 3))
+def pentagonals(n_max=None, n_min=0):
+    if n_max is None:
+        gen = it.count(n_min)
+    else:
+        gen = range(n_min, n_max)
 
+    for m in gen:
+        if (m % 2) == 0:
+            k = m // 2 + 1
+        else:
+            k = - (m // 2) - 1
+        yield (k * (3 * k - 1)) // 2
 
-for i in range(1, 1000):
-    p = n_partitions(i)
-    div = p / 10**6
-    if p >= (10**6 - 1.0):
-        err = abs(div - round(div))
+partitions = [1]
+for n in it.count(1):
+    p = 0
+    signs = it.cycle((1, 1, -1, -1))
+    pents_below = it.takewhile(lambda x: x <= n, pentagonals())
+    for pent in pents_below:
+        p += next(signs) * partitions[n - pent]
+        p %= 1000000
+    if p == 0:
+        break
+    else:
+        partitions.append(p)
 
-        if err < 1e-10:
-            print(i, err, div)
+print(n)
