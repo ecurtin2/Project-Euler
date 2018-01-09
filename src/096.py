@@ -121,13 +121,6 @@ class SudokuPuzzle(object):
         self.boxes = [__class__.Box(self, i, j) for i in range(3) for j in range(3)]
         self.containers = tuple(self.rows + self.cols + self.boxes)
         self.original_str = self.get_list_str()
-        self.iterations = 0
-        self.save_states = {}
-        self.invalid_containers = []
-        self.combo_its = 0
-        self.obvious_its = 0
-        self.guess_its = 0
-        self.guessed_squares = set()
         assert(self.is_valid and 'Initial puzzle is already invalid and cannot be solved.')
 
     def allsquares(self):
@@ -150,7 +143,6 @@ class SudokuPuzzle(object):
     def solve(self, max_iters=100):
         count = 0
         while not self.is_solved:
-            self.obvious_its += 1
             old_vals = copy.copy([square.value for square in self.allsquares()])
             count += 1
             for square in self.allsquares():
@@ -179,7 +171,6 @@ class SudokuPuzzle(object):
                         self.squares = duplicate.squares
                         break
                 break
-        self.iterations = count
 
     def get_list_str(self):
         l = []
@@ -195,7 +186,7 @@ class SudokuPuzzle(object):
     def __str__(self):
         d = {True: "Solved", False: "Unsolved"}
         top = [3 * ' ' + " Sudoku: {name}   Status: {solved}   ".format(
-            name=self.identity, solved=d[self.is_solved], its=self.iterations)]
+            name=self.identity, solved=d[self.is_solved])]
         third = [' '*9 + 'Original' + ' '*21 + 'Current']
         l = [s1 + ' |    | ' + s2 for s1, s2 in zip(self.original_str, self.get_list_str())]
         l = ['| ' + s + ' |' for s in l]
@@ -209,32 +200,11 @@ class SudokuPuzzle(object):
 puzzles = [SudokuPuzzle(v, k) for k, v in grids.items()]
 total = 0
 
-#for puzzle in puzzles:
-#    puzzle.solve()
-#    num = int(''.join([str(puzzle.squares[0][j].value) for j in range(3)]))
-#    total += num
-#    print(puzzle)
-#print("\nSum of numbers formed by top left 3 digits = {}".format(total))
-#frac = sum(1 for puzzle in puzzles if puzzle.is_solved) / len(puzzles)
-#print("Solved {:5.4}% of Puzzles!".format(100.0*frac))
-
-print('Bonus one from airplane magazine!')
-
-
-puzzle = SudokuPuzzle(
-          [[0, 0, 0, 0, 7, 5, 3, 9, 0]
-          ,[0, 0, 3, 0, 9, 0, 6, 7, 2]
-          ,[0, 6, 0, 8, 2, 0, 5, 0, 0]
-          ,[0, 4, 7, 0, 0, 8, 0, 0, 1]
-          ,[0, 0, 0, 0, 0, 0, 0, 0, 0]
-          ,[2, 0, 0, 3, 0, 0, 4, 5, 0]
-          ,[0, 0, 2, 0, 5, 4, 0, 8, 0]
-          ,[5, 1, 4, 0, 8, 0, 2, 0, 0]
-          ,[0, 7, 8, 9, 3, 0, 0, 0, 0]]
-        , "Airplane")
-
-import time
-t = time.time()
-puzzle.solve()
-print(puzzle)
-print('Solved in {} seconds'.format(time.time() - t))
+for puzzle in puzzles:
+    puzzle.solve()
+    num = int(''.join([str(puzzle.squares[0][j].value) for j in range(3)]))
+    total += num
+    print(puzzle)
+print("\nSum of numbers formed by top left 3 digits = {}".format(total))
+frac = sum(1 for puzzle in puzzles if puzzle.is_solved) / len(puzzles)
+print("Solved {:5.4}% of Puzzles!".format(100.0*frac))
