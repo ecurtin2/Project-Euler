@@ -36,10 +36,7 @@ with open('eulerprobs.json', 'r') as f:
         if os.path.isfile(fname):
             with open(fname, 'r') as f:
                 s = f.read()
-            #with open(fname, 'w') as f:
-                #f.write(header + s)
-                print(header + s)
-        else:
             with open(fname, 'w') as f:
-                print(header)
-                #f.write(header)
+                f.write(header + s)
+        else:
+            print(header)
