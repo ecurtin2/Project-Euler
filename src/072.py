@@ -7,4 +7,20 @@ It can be seen that there are 21 elements in this set.
 How many elements would be contained in the set of reduced proper fractions for d ≤ 1,000,000?
 
 """
+from sympy.ntheory import totient
+
+def farey_series(n):
+    a = 0
+    b = 1
+    c = 1
+    d = n
+
+    while c <= n:
+        k = int((n + b) / d)
+        a, b, c, d, = c, d, (k * c - a), (k * d - b)
+        yield a, b
+
+
+N = 10**6 + 1
+print(-1 + sum(totient(i) for i in range(1, N)))
 
