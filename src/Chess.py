@@ -1,8 +1,9 @@
-from copy import copy
+"""from copy import copy
 from math import sqrt
 
 import numpy as np
 import itertools as it
+"""
 
 
 class Node(object):

@@ -92,8 +92,6 @@ Find the sum of digits in the numerator of the 100th convergent of the continued
 
 """
 
-"""
-
 The square root of 2 can be written as an infinite continued fraction.
 
 The infinite continued fraction can be written, √2 = [1;(2)], (2) indicates that 2 repeats ad infinitum. In a similar way, √23 = [4;(1,3,1,8)].
